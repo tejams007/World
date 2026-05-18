@@ -151,7 +151,8 @@ code { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monos
 }
 .nav-group:hover .nav-caret { transform: translateY(1px) rotate(180deg); }
 .nav-dropdown {
-  display: none;
+  /* Use opacity+visibility instead of display:none so we get a fade transition
+     and so the dropdown remains in the DOM (no jumpy re-layout on hover). */
   position: absolute;
   top: 100%;
   left: 0;
@@ -161,11 +162,34 @@ code { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monos
   border-top: none;
   border-radius: 0 0 4px 4px;
   padding: 4px 0;
-  margin-top: 4px;
+  /* NO margin-top — the gap was eating mouse-cross events from trigger to items. */
+  margin-top: 0;
   z-index: 100;
   box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0s linear 0.12s;
 }
-.nav-group:hover .nav-dropdown { display: block; }
+/* Invisible bridge: extend the hover zone into the gap above the dropdown so
+   the mouse can travel from trigger to items without ever leaving the hover area. */
+.nav-dropdown::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  top: -8px; height: 8px;
+  background: transparent;
+}
+.nav-group:hover .nav-dropdown,
+.nav-group:focus-within .nav-dropdown {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+  /* Cancel the visibility-delay on open so it appears immediately. */
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0s linear 0s;
+}
 .nav-dropdown a {
   display: block;
   padding: 8px 16px;
