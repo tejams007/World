@@ -1321,7 +1321,17 @@ function highlightNav(route) {
 }
 
 function navigate(route, subAnchor) {
-  if (!PAGES[route]) route = 'index';
+  // If `route` isn't a known page name, treat the hash as an in-page anchor on
+  // the CURRENT page (e.g., TOC sidebar links use bare anchors like #us-debt).
+  if (!PAGES[route]) {
+    const inPageEl = document.getElementById(route);
+    if (inPageEl) {
+      inPageEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      return;
+    }
+    // Unknown both as route and as in-page anchor → fall back to index.
+    route = 'index';
+  }
   destroyAllCharts();
   try {
     host.innerHTML = decodeB64(PAGES[route]);
