@@ -1170,6 +1170,72 @@ function makeDoughnut(ctx, labels, data, colors) {
 async function loadMacroData() {
   return window.MACRO_DATA || {};
 }
+
+// =============================================================================
+// TOC sidebar: clickable expand/collapse + search filter
+// Each .toc-group has data-open="true|false". Clicking its .toc-group-head
+// toggles the attribute; CSS hides .toc-items when data-open="false".
+// =============================================================================
+(function initTocSidebar() {
+  function wire() {
+    const groups = document.querySelectorAll('.toc-group');
+    if (!groups.length) return;
+
+    // Open the FIRST group by default so the sidebar isn't fully collapsed.
+    if (!document.querySelector('.toc-group[data-open="true"]')) {
+      groups[0].setAttribute('data-open', 'true');
+    }
+
+    groups.forEach(g => {
+      const head = g.querySelector('.toc-group-head');
+      if (!head || head.__tocWired) return;
+      head.__tocWired = true;
+      head.addEventListener('click', (e) => {
+        e.preventDefault();
+        const open = g.getAttribute('data-open') === 'true';
+        g.setAttribute('data-open', open ? 'false' : 'true');
+      });
+    });
+
+    // Auto-open the group containing the current hash target (deep-link UX).
+    const h = (location.hash || '').slice(1);
+    if (h) {
+      const a = document.querySelector(`.toc-items a[href="#${h}"]`);
+      if (a) {
+        const parentGroup = a.closest('.toc-group');
+        if (parentGroup) parentGroup.setAttribute('data-open', 'true');
+      }
+    }
+
+    // Search filter: hide groups/items not matching the query.
+    const search = document.getElementById('toc-search');
+    if (search && !search.__tocWired) {
+      search.__tocWired = true;
+      search.addEventListener('input', () => {
+        const q = search.value.trim().toLowerCase();
+        document.querySelectorAll('.toc-group').forEach(g => {
+          let anyMatch = false;
+          g.querySelectorAll('.toc-items li').forEach(li => {
+            const txt = li.textContent.toLowerCase();
+            const match = !q || txt.includes(q);
+            li.classList.toggle('filtered-out', !match);
+            if (match) anyMatch = true;
+          });
+          // When filtering: expand groups with matches, hide groups without.
+          g.classList.toggle('filtered-out', !!q && !anyMatch);
+          if (q && anyMatch) g.setAttribute('data-open', 'true');
+        });
+      });
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wire);
+  } else {
+    wire();
+  }
+  // Re-wire after hash navigation (single-doc SPA swaps page content).
+  window.addEventListener('hashchange', () => setTimeout(wire, 60));
+})();
 </script>
 </head>
 <body>
